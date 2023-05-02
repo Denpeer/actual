@@ -167,7 +167,7 @@ export function addSplitTransaction(transactions, id) {
     let prevSub = last(trans.subtransactions);
     trans.subtransactions.push(
       makeChild(trans, {
-        amount: 0,
+        amount: Math.ceil(trans.amount / 2),
         sort_order: num(prevSub && prevSub.sort_order) - 1,
       }),
     );
@@ -235,7 +235,12 @@ export function splitTransaction(transactions, id) {
       ...trans,
       is_parent: true,
       error: num(trans.amount) === 0 ? null : SplitTransactionError(0, trans),
-      subtransactions: [makeChild(trans, { amount: 0, sort_order: -1 })],
+      subtransactions: [
+        makeChild(trans, {
+          amount: Math.floor(num(trans.amount) / 2),
+          sort_order: -1,
+        }),
+      ],
     };
   });
 }
