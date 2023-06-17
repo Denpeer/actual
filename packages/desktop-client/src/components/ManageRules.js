@@ -1,4 +1,6 @@
 import React, {
+  forwardRef,
+  memo,
   useState,
   useEffect,
   useRef,
@@ -208,14 +210,7 @@ export function Value({
   }
 }
 
-export function ConditionExpression({
-  field,
-  op,
-  value,
-  options,
-  prefix,
-  style,
-}) {
+function ConditionExpression({ field, op, value, options, prefix, style }) {
   return (
     <View
       style={[
@@ -263,7 +258,7 @@ function ScheduleValue({ value }) {
   );
 }
 
-export function ActionExpression({ field, op, value, options, style }) {
+function ActionExpression({ field, op, value, options, style }) {
   return (
     <View
       style={[
@@ -297,7 +292,7 @@ export function ActionExpression({ field, op, value, options, style }) {
   );
 }
 
-let Rule = React.memo(
+let Rule = memo(
   ({
     rule,
     hovered,
@@ -327,8 +322,8 @@ let Rule = React.memo(
         <SelectCell
           exposed={hovered || selected || editing}
           focused={focusedField === 'select'}
-          onSelect={() => {
-            dispatchSelected({ type: 'select', id: rule.id });
+          onSelect={e => {
+            dispatchSelected({ type: 'select', id: rule.id, event: e });
           }}
           onEdit={() => onEdit(rule.id, 'select')}
           selected={selected}
@@ -411,7 +406,7 @@ let Rule = React.memo(
   },
 );
 
-let SimpleTable = React.forwardRef(
+let SimpleTable = forwardRef(
   (
     { data, navigator, loadMore, style, onHoverLeave, children, ...props },
     ref,
@@ -476,7 +471,7 @@ function RulesHeader() {
         exposed={true}
         focused={false}
         selected={selectedItems.size > 0}
-        onSelect={() => dispatchSelected({ type: 'select-all' })}
+        onSelect={e => dispatchSelected({ type: 'select-all', event: e })}
       />
       <Cell value="Stage" width={50} />
       <Cell value="Rule" width="flex" />
@@ -757,7 +752,7 @@ function ManageRulesContent({ isModal, payeeId, setLoading }) {
               Rules are always run in the order that you see them.{' '}
               <ExternalLink
                 asAnchor={true}
-                href="https://actualbudget.github.io/docs/Budgeting/rules/"
+                href="https://actualbudget.org/docs/budgeting/rules/"
                 style={{ color: colors.n4 }}
               >
                 Learn more

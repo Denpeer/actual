@@ -1,10 +1,19 @@
-import React, { useState, useContext, useMemo, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useMemo,
+  useEffect,
+  type DependencyList,
+} from 'react';
+
+import { type Query } from '../shared/query';
 
 import { liveQuery, LiveQuery, PagedQuery } from './query-helpers';
 
 function makeContext(queryState, opts, QueryClass) {
   let query = new QueryClass(queryState, null, opts);
-  let Context = React.createContext(null);
+  let Context = createContext(null);
 
   function Provider({ children }) {
     let [data, setData] = useState(query.getData());
@@ -64,19 +73,16 @@ export function pagedQueryContext(query, opts) {
   return makeContext(query, opts, PagedQuery);
 }
 
-export function useLiveQuery(query, opts) {
+export function useLiveQuery(makeQuery: () => Query, deps: DependencyList) {
   let [data, setData] = useState(null);
+  let query = useMemo(makeQuery, deps);
 
   useEffect(() => {
-    let live = liveQuery(
-      query,
-      async data => {
-        if (live) {
-          setData(data);
-        }
-      },
-      opts,
-    );
+    let live = liveQuery(query, async data => {
+      if (live) {
+        setData(data);
+      }
+    });
 
     return () => {
       live.unsubscribe();
@@ -84,5 +90,5 @@ export function useLiveQuery(query, opts) {
     };
   }, [query]);
 
-  return { data };
+  return data;
 }

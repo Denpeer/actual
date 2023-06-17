@@ -1,7 +1,14 @@
 /* eslint-disable import/order */
 // (I have no idea why the imports are like this. Not touching them.)
 const isDev = require('electron-is-dev');
+const fs = require('fs');
+
 require('module').globalPaths.push(__dirname + '/..');
+
+// Allow unsecure in dev
+if (isDev) {
+  process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+}
 
 const {
   app,
@@ -23,7 +30,7 @@ protocol.registerSchemesAsPrivileged([
 global.fetch = require('node-fetch');
 
 const about = require('./about');
-const findOpenSocket = require('./findOpenSocket');
+const { getRandomPort } = require('get-port-please');
 const getMenu = require('./menu');
 const updater = require('./updater');
 
@@ -42,6 +49,7 @@ if (!isDev || !process.env.ACTUAL_DATA_DIR) {
   process.env.ACTUAL_DATA_DIR = app.getPath('userData');
 }
 
+// eslint-disable-next-line import/extensions
 const WindowState = require('./window-state.js');
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -92,28 +100,6 @@ function createBackgroundProcess(socketName) {
   });
 }
 
-function createBackgroundWindow(socketName) {
-  const win = new BrowserWindow({
-    show: true,
-    title: 'Actual Server',
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-  win.loadURL(`file://${__dirname}/server.html`);
-
-  win.webContents.on('did-finish-load', () => {
-    win.webContents.send('set-socket', { name: socketName });
-  });
-
-  win.on('closed', () => {
-    serverWin = null;
-  });
-
-  serverWin = win;
-}
-
 async function createWindow() {
   const windowState = await WindowState.get();
 
@@ -127,7 +113,10 @@ async function createWindow() {
     titleBarStyle: 'hiddenInset',
     webPreferences: {
       nodeIntegration: false,
+      nodeIntegrationInWorker: false,
+      nodeIntegrationInSubFrames: false,
       contextIsolation: true,
+      enableRemoteModule: false,
       preload: __dirname + '/preload.js',
     },
   });
@@ -177,6 +166,25 @@ async function createWindow() {
     win.webContents.send('set-socket', { name: serverSocket });
   });
 
+  // hit when middle-clicking buttons or <a href/> with a target set to _blank
+  // always deny, optionally redirect to browser
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isExternalUrl(url)) {
+      shell.openExternal(url);
+    }
+
+    return { action: 'deny' };
+  });
+
+  // hit when clicking <a href/> with no target
+  // optionally redirect to browser
+  win.webContents.on('will-navigate', (event, url) => {
+    if (isExternalUrl(url)) {
+      shell.openExternal(url);
+      event.preventDefault();
+    }
+  });
+
   if (process.platform === 'win32') {
     Menu.setApplicationMenu(null);
     win.setMenu(getMenu(isDev, createWindow));
@@ -185,6 +193,10 @@ async function createWindow() {
   }
 
   clientWin = win;
+}
+
+function isExternalUrl(url) {
+  return !url.includes('localhost:') && !url.includes('app://');
 }
 
 function updateMenu(isBudgetOpen) {
@@ -222,7 +234,7 @@ function updateMenu(isBudgetOpen) {
 app.setAppUserModelId('com.shiftreset.actual');
 
 app.on('ready', async () => {
-  serverSocket = await findOpenSocket();
+  serverSocket = await getRandomPort();
 
   // Install an `app://` protocol that always returns the base HTML
   // file no matter what URL it is. This allows us to use react-router
@@ -267,11 +279,7 @@ app.on('ready', async () => {
     console.log('Suspending', new Date());
   });
 
-  if (isDev) {
-    createBackgroundWindow(serverSocket);
-  } else {
-    createBackgroundProcess(serverSocket);
-  }
+  createBackgroundProcess(serverSocket);
 });
 
 app.on('window-all-closed', () => {
@@ -314,9 +322,21 @@ ipcMain.handle('open-file-dialog', (event, { filters, properties }) => {
   });
 });
 
-ipcMain.handle('save-file-dialog', (event, { title, defaultPath }) => {
-  return dialog.showSaveDialogSync({ title, defaultPath });
-});
+ipcMain.handle(
+  'save-file-dialog',
+  (event, { title, defaultPath, fileContents }) => {
+    let fileLocation = dialog.showSaveDialogSync({ title, defaultPath });
+
+    return new Promise((resolve, reject) => {
+      if (fileLocation) {
+        fs.writeFile(fileLocation, fileContents, error => {
+          return reject(error);
+        });
+      }
+      resolve();
+    });
+  },
+);
 
 ipcMain.handle('open-external-url', (event, url) => {
   shell.openExternal(url);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 
 import q, { runQuery } from 'loot-core/src/client/query-helpers';
@@ -10,6 +10,7 @@ import useSelected, {
   useSelectedItems,
   SelectedProvider,
 } from '../../hooks/useSelected';
+import useSendPlatformRequest from '../../hooks/useSendPlatformRequest';
 import { colors } from '../../style';
 import { View, Stack, ButtonWithLoading, P } from '../common';
 import { Page, usePageType } from '../Page';
@@ -35,8 +36,8 @@ function DiscoverSchedulesTable({ schedules, loading }) {
         height={ROW_HEIGHT}
         inset={15}
         backgroundColor="transparent"
-        onClick={() => {
-          dispatchSelected({ type: 'select', id: item.id });
+        onClick={e => {
+          dispatchSelected({ type: 'select', id: item.id, event: e });
         }}
         borderColor={selected ? colors.b8 : colors.border}
         style={{
@@ -51,8 +52,8 @@ function DiscoverSchedulesTable({ schedules, loading }) {
           exposed={true}
           focused={false}
           selected={selected}
-          onSelect={() => {
-            dispatchSelected({ type: 'select', id: item.id });
+          onSelect={e => {
+            dispatchSelected({ type: 'select', id: item.id, event: e });
           }}
         />
         <Field width="flex">
@@ -73,10 +74,10 @@ function DiscoverSchedulesTable({ schedules, loading }) {
     <View style={{ flex: 1 }}>
       <TableHeader height={ROW_HEIGHT} inset={15} version="v2">
         <SelectCell
-          exposed={true}
+          exposed={!loading}
           focused={false}
           selected={selectedItems.size > 0}
-          onSelect={() => dispatchSelected({ type: 'select-all' })}
+          onSelect={e => dispatchSelected({ type: 'select-all', event: e })}
         />
         <Field width="flex">Payee</Field>
         <Field width="flex">Account</Field>
@@ -109,17 +110,11 @@ function DiscoverSchedulesTable({ schedules, loading }) {
 export default function DiscoverSchedules() {
   let pageType = usePageType();
   let history = useHistory();
-  let [schedules, setSchedules] = useState();
+  let { data: schedules = [], isLoading } =
+    useSendPlatformRequest('schedule/discover');
   let [creating, setCreating] = useState(false);
 
   let selectedInst = useSelected('discover-schedules', schedules, []);
-
-  useEffect(() => {
-    async function run() {
-      setSchedules(await send('schedule/discover'));
-    }
-    run();
-  }, []);
 
   async function onCreate() {
     let selected = schedules.filter(s => selectedInst.items.has(s.id));
@@ -163,15 +158,9 @@ export default function DiscoverSchedules() {
         the payees of the transactions don’t match. Make sure you rename payees
         on all transactions for a schedule to be the same payee.
       </P>
-      <P>
-        You can always do this later from “More Tools” &rarr; “Find Schedules.”
-      </P>
 
       <SelectedProvider instance={selectedInst}>
-        <DiscoverSchedulesTable
-          loading={schedules == null}
-          schedules={schedules}
-        />
+        <DiscoverSchedulesTable loading={isLoading} schedules={schedules} />
       </SelectedProvider>
 
       <Stack

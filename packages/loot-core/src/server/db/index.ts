@@ -511,6 +511,15 @@ export function getPayees() {
   `);
 }
 
+export function syncGetOrphanedPayees() {
+  return all(`
+  SELECT p.id FROM payees p
+  LEFT JOIN payee_mapping pm ON pm.id = p.id
+  LEFT JOIN v_transactions_internal_alive t ON t.payee = pm.targetId
+  WHERE p.tombstone = 0 AND p.transfer_acct IS NULL AND t.id IS NULL
+`);
+}
+
 export async function getOrphanedPayees() {
   let rows = await all(`
     SELECT p.id FROM payees p
@@ -538,12 +547,6 @@ export function getAccounts() {
 }
 
 export async function insertAccount(account) {
-  // Default to checking. Makes it a lot easier for tests and is
-  // generally harmless.
-  if (account.type === undefined) {
-    account = { ...account, type: 'checking' };
-  }
-
   const accounts = await all(
     'SELECT * FROM accounts WHERE offbudget = ? ORDER BY sort_order, name',
     [account.offbudget != null ? account.offbudget : 0],

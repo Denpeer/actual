@@ -61,8 +61,6 @@ export const schema = {
   accounts: {
     id: f('id'),
     name: f('string', { required: true }),
-    // TODO: enum
-    type: f('string'),
     offbudget: f('boolean'),
     closed: f('boolean'),
     sort_order: f('float'),
@@ -72,6 +70,7 @@ export const schema = {
     id: f('id'),
     name: f('string'),
     is_income: f('boolean'),
+    hidden: f('boolean'),
     group: f('id', { ref: 'category_groups' }),
     sort_order: f('float'),
     tombstone: f('boolean'),
@@ -80,6 +79,7 @@ export const schema = {
     id: f('id'),
     name: f('string'),
     is_income: f('boolean'),
+    hidden: f('boolean'),
     sort_order: f('float'),
     tombstone: f('boolean'),
   },

@@ -1,28 +1,14 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { createContext, useContext } from 'react';
 
-import q, { liveQuery } from 'loot-core/src/client/query-helpers';
-import { getPayeesById } from 'loot-core/src/client/reducers/queries';
+import q from '../query-helpers';
+import { useLiveQuery } from '../query-hooks';
+import { getPayeesById } from '../reducers/queries';
 
 export function usePayees() {
-  let [data, setData] = useState([]);
-
-  useEffect(() => {
-    let query = liveQuery(q('payees').select('*'), async payees => {
-      if (query) {
-        setData(payees);
-      }
-    });
-
-    return () => {
-      query.unsubscribe();
-      query = null;
-    };
-  }, []);
-
-  return data;
+  return useLiveQuery(() => q('payees').select('*'), []);
 }
 
-let PayeesContext = React.createContext(null);
+let PayeesContext = createContext(null);
 
 export function PayeesProvider({ children }) {
   let data = usePayees();

@@ -15,19 +15,24 @@ expr
       priority: +priority
     } }
   / priority: priority? _? monthly: amount limit: limit?
-    { return { type: 'simple', monthly, limit, priority: +priority  } }
-  / priority: priority? _? upTo _ limit: amount
+    { return { type: 'simple', monthly, limit, priority: +priority } }
+  / priority: priority? _? limit: limit
     { return { type: 'simple', limit , priority: +priority } }
-  / priority: priority? _? schedule _ name: name
-    { return { type: 'schedule', name, priority: +priority } }
+  / priority: priority? _? schedule _ full:full? name: name
+    { return { type: 'schedule', name, priority: +priority, full } }
+  / priority: priority? _? remainder: remainder
+    { return { type: 'remainder', priority: null, weight: remainder } }
+
 
 repeat 'repeat interval'
   = 'month'i { return { annual: false } }
-  / months: d _ 'months'i { return { annual: false, repeat: +months } }
+  / months: positive _ 'months'i { return { annual: false, repeat: +months } }
   / 'year'i { return { annual: true } }
-  / years: d _ 'years'i { return { annual: true, repeat: +years } }
+  / years: positive _ 'years'i { return { annual: true, repeat: +years } }
 
-limit = _ upTo? _ amount: amount { return amount }
+limit =  _? upTo _ amount: amount _ 'hold'i { return {amount: amount, hold: true } }
+        / _? upTo _ amount: amount { return {amount: amount, hold: false } }
+
 
 weekCount
   = week { return null }
@@ -43,11 +48,14 @@ repeatEvery = 'repeat'i _ 'every'i
 starting = 'starting'i
 upTo = 'up'i _ 'to'i
 schedule = 'schedule'i
+full = 'full'i _ {return true}
 priority = '-'i number: number _ {return number}
+remainder = 'remainder'i _? weight: positive? { return +weight || 1 }
 
 _ 'space' = ' '+
 d 'digit' = [0-9]
 number 'number' = $(d+)
+positive = $([1-9][0-9]*)
 amount 'amount' = currencySymbol? _? amount: $(d+ ('.' (d d?)?)?) { return +amount }
 percent 'percentage' = percent: $(d+) _? '%' { return +percent }
 year 'year' = $(d d d d)
@@ -57,3 +65,4 @@ date = $(month '-' day)
 currencySymbol 'currency symbol' = symbol: . & { return /\p{Sc}/u.test(symbol) }
 
 name 'Name' = $([^\r\n\t]+)
+

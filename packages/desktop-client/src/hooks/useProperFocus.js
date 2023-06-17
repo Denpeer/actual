@@ -1,4 +1,10 @@
-import React, { useRef, useLayoutEffect, useContext, useMemo } from 'react';
+import React, {
+  createContext,
+  useRef,
+  useLayoutEffect,
+  useContext,
+  useMemo,
+} from 'react';
 
 function getFocusedKey(el) {
   let node = el;
@@ -14,7 +20,7 @@ function getFocusedKey(el) {
   return null;
 }
 
-export function focusElement(el, refocusContext) {
+function focusElement(el, refocusContext) {
   if (refocusContext) {
     let key = getFocusedKey(el);
     el.focus({ preventScroll: key && key === refocusContext.keyRef.current });
@@ -28,7 +34,7 @@ export function focusElement(el, refocusContext) {
   }
 }
 
-let AvoidRefocusScrollContext = React.createContext(null);
+let AvoidRefocusScrollContext = createContext(null);
 
 export function AvoidRefocusScrollProvider({ children }) {
   let keyRef = useRef(null);

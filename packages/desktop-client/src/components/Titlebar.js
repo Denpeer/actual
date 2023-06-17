@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+} from 'react';
 import { connect } from 'react-redux';
-import { Switch, Route, withRouter } from 'react-router-dom';
+import { Switch, Route, useLocation, useHistory } from 'react-router-dom';
 
 import { css, media } from 'glamor';
 
@@ -13,6 +19,7 @@ import useFeatureFlag from '../hooks/useFeatureFlag';
 import ArrowLeft from '../icons/v1/ArrowLeft';
 import AlertTriangle from '../icons/v2/AlertTriangle';
 import NavigationMenu from '../icons/v2/NavigationMenu';
+import { useResponsive } from '../ResponsiveProvider';
 import { colors } from '../style';
 import tokens from '../tokens';
 
@@ -33,7 +40,7 @@ import LoggedInUser from './LoggedInUser';
 import { useServerURL } from './ServerContext';
 import SheetValue from './spreadsheet/SheetValue';
 
-export let TitlebarContext = React.createContext();
+export let TitlebarContext = createContext();
 
 export function TitlebarProvider({ children }) {
   let listeners = useRef([]);
@@ -56,7 +63,7 @@ export function TitlebarProvider({ children }) {
   );
 }
 
-export function UncategorizedButton() {
+function UncategorizedButton() {
   return (
     <SheetValue binding={queries.uncategorizedCount()}>
       {node => {
@@ -130,7 +137,7 @@ export function SyncButton({ localPrefs, style, onSync }) {
               ? colors.n9
               : null,
         },
-        media(`(min-width: ${tokens.breakpoint_medium})`, {
+        media(`(min-width: ${tokens.breakpoint_small})`, {
           color:
             syncState === 'error'
               ? colors.r4
@@ -251,7 +258,6 @@ function BudgetTitlebar({ globalPrefs, saveGlobalPrefs, localPrefs }) {
 }
 
 function Titlebar({
-  location,
   globalPrefs,
   saveGlobalPrefs,
   localPrefs,
@@ -262,10 +268,13 @@ function Titlebar({
   style,
   sync,
 }) {
+  let history = useHistory();
+  let location = useLocation();
   let sidebar = useSidebar();
+  let { isNarrowWidth } = useResponsive();
   const serverURL = useServerURL();
 
-  return (
+  return isNarrowWidth ? null : (
     <View
       style={[
         {
@@ -312,45 +321,30 @@ function Titlebar({
       )}
 
       <Switch>
-        <Route
-          path="/accounts"
-          exact
-          children={props => {
-            let state = props.location.state || {};
-            return state.goBack ? (
-              <Button onClick={() => props.history.goBack()} bare>
-                <ArrowLeft
-                  width={10}
-                  height={10}
-                  style={{ marginRight: 5, color: 'currentColor' }}
-                />{' '}
-                Back
-              </Button>
-            ) : null;
-          }}
-        />
+        <Route path="/accounts" exact>
+          {location.state?.goBack ? (
+            <Button onClick={() => history.goBack()} bare>
+              <ArrowLeft
+                width={10}
+                height={10}
+                style={{ marginRight: 5, color: 'currentColor' }}
+              />{' '}
+              Back
+            </Button>
+          ) : null}
+        </Route>
 
-        <Route
-          path="/accounts/:id"
-          exact
-          children={props => {
-            return (
-              props.match && <AccountSyncCheck id={props.match.params.id} />
-            );
-          }}
-        />
+        <Route path="/accounts/:id" exact>
+          <AccountSyncCheck />
+        </Route>
 
-        <Route
-          path="/budget"
-          exact
-          children={() => (
-            <BudgetTitlebar
-              globalPrefs={globalPrefs}
-              saveGlobalPrefs={saveGlobalPrefs}
-              localPrefs={localPrefs}
-            />
-          )}
-        />
+        <Route path="/budget" exact>
+          <BudgetTitlebar
+            globalPrefs={globalPrefs}
+            saveGlobalPrefs={saveGlobalPrefs}
+            localPrefs={localPrefs}
+          />
+        </Route>
       </Switch>
       <View style={{ flex: 1 }} />
       <UncategorizedButton />
@@ -366,14 +360,12 @@ function Titlebar({
   );
 }
 
-export default withRouter(
-  connect(
-    state => ({
-      globalPrefs: state.prefs.global,
-      localPrefs: state.prefs.local,
-      userData: state.user.data,
-      floatingSidebar: state.prefs.global.floatingSidebar,
-    }),
-    actions,
-  )(Titlebar),
-);
+export default connect(
+  state => ({
+    globalPrefs: state.prefs.global,
+    localPrefs: state.prefs.local,
+    userData: state.user.data,
+    floatingSidebar: state.prefs.global.floatingSidebar,
+  }),
+  actions,
+)(Titlebar);

@@ -1,4 +1,5 @@
 import React, {
+  createContext,
   useEffect,
   useRef,
   useLayoutEffect,
@@ -12,7 +13,7 @@ import { colors } from '../style';
 
 import { View } from './common';
 
-export function useMergedRefs(ref1, ref2) {
+function useMergedRefs(ref1, ref2) {
   return useMemo(() => {
     function ref(value) {
       [ref1, ref2].forEach(ref => {
@@ -105,7 +106,7 @@ export function useDroppable({ types, id, onDrop, onLongHover }) {
   };
 }
 
-export const DropHighlightPosContext = React.createContext(null);
+export const DropHighlightPosContext = createContext(null);
 
 export function DropHighlight({ pos, offset = {} }) {
   let itemPos = useContext(DropHighlightPosContext);

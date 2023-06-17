@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { connect } from 'react-redux';
-import { useDispatch } from 'react-redux';
+import { connect, useDispatch } from 'react-redux';
 import { withRouter, useHistory } from 'react-router';
 
 import { bindActionCreators } from 'redux';
@@ -35,7 +34,7 @@ function EditableBudgetName({ prefs, savePrefs }) {
         history.push('/settings');
         break;
       case 'help':
-        window.open('https://actualbudget.github.io/docs', '_blank');
+        window.open('https://actualbudget.org/docs/', '_blank');
         break;
       case 'close':
         dispatch(closeBudget());

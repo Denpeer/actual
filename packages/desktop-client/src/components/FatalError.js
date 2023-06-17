@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { Component, useState } from 'react';
 
 import { colors } from '../style';
 
 import { View, Stack, Text, Block, Modal, P, Link, Button } from './common';
 import { Checkbox } from './forms';
 
-class FatalError extends React.Component {
+class FatalError extends Component {
   state = { showError: false };
 
   renderSimple(error) {
@@ -28,7 +28,7 @@ class FatalError extends React.Component {
           function properly. If you’re seeing this error, either your browser
           does not support <code>SharedArrayBuffer</code>, or your server is not
           sending the appropriate headers, or you are not using HTTPS. See{' '}
-          <a href="https://actualbudget.github.io/docs/Troubleshooting/SharedArrayBuffer">
+          <a href="https://actualbudget.org/docs/troubleshooting/shared-array-buffer">
             our troubleshooting documentation
           </a>{' '}
           to learn more. <SharedArrayBufferOverride />
@@ -70,8 +70,7 @@ class FatalError extends React.Component {
         >
           <Text>{msg}</Text>
           <Text>
-            Please get{' '}
-            <a href="https://actualbudget.github.io/docs/Contact">in touch</a>{' '}
+            Please get <a href="https://actualbudget.org/contact">in touch</a>{' '}
             for support
           </Text>
         </Stack>
@@ -95,7 +94,7 @@ class FatalError extends React.Component {
             <P>
               If this error persists, please get{' '}
               <a
-                href="https://actualbudget.github.io/docs/Contact"
+                href="https://actualbudget.org/contact"
                 style={{ color: colors.p4 }}
               >
                 in touch
