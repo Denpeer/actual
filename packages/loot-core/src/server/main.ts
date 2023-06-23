@@ -1,5 +1,6 @@
 import './polyfills';
 import * as injectAPI from '@actual-app/api/injected';
+import * as CRDT from '@actual-app/crdt';
 import * as YNAB4 from '@actual-app/import-ynab4/importer';
 import * as YNAB5 from '@actual-app/import-ynab5/importer';
 
@@ -37,16 +38,6 @@ import {
 import budgetApp from './budget/app';
 import * as budget from './budget/base';
 import * as cloudStorage from './cloud-storage';
-import {
-  getClock,
-  setClock,
-  makeClock,
-  makeClientId,
-  serializeClock,
-  deserializeClock,
-  Timestamp,
-  merkle,
-} from './crdt';
 import * as db from './db';
 import * as mappings from './db/mappings';
 import * as encryption from './encryption';
@@ -73,7 +64,6 @@ import {
   repairSync,
 } from './sync';
 import * as syncMigrations from './sync/migrate';
-import * as SyncPb from './sync/proto/sync_pb';
 import toolsApp from './tools/app';
 import { withUndo, clearUndo, undo, redo } from './undo';
 import { updateVersion } from './update';
@@ -2214,10 +2204,10 @@ async function loadBudget(id) {
     //
     // TODO: The client id should be stored elsewhere. It shouldn't
     // work this way, but it's fine for now.
-    getClock().timestamp.setNode(makeClientId());
+    CRDT.getClock().timestamp.setNode(CRDT.makeClientId());
     await db.runQuery(
       'INSERT OR REPLACE INTO messages_clock (id, clock) VALUES (1, ?)',
-      [serializeClock(getClock())],
+      [CRDT.serializeClock(CRDT.getClock())],
     );
 
     await prefs.savePrefs({ resetClock: false });
@@ -2275,30 +2265,6 @@ async function loadBudget(id) {
 
   return {};
 }
-
-handlers['get-upgrade-notifications'] = async function () {
-  let { id } = prefs.getPrefs();
-  if (id === TEST_BUDGET_ID || id === DEMO_BUDGET_ID) {
-    return [];
-  }
-
-  let types = ['schedules', 'repair-splits'];
-  let unseen = [];
-
-  for (let type of types) {
-    let key = `notifications.${type}`;
-    if (prefs.getPrefs()[key] == null) {
-      unseen.push(type);
-    }
-  }
-
-  return unseen;
-};
-
-handlers['seen-upgrade-notification'] = async function ({ type }) {
-  let key = `notifications.${type}`;
-  prefs.savePrefs({ [key]: true });
-};
 
 handlers['upload-file-web'] = async function ({ filename, contents }) {
   if (!Platform.isWeb) {
@@ -2502,15 +2468,7 @@ export const lib = {
   db,
 
   // Expose CRDT mechanisms so server can use them
-  merkle,
-  timestamp: {
-    getClock,
-    setClock,
-    makeClock,
-    makeClientId,
-    serializeClock,
-    deserializeClock,
-    Timestamp,
-  },
-  SyncProtoBuf: SyncPb,
+  // Backwards compatability
+  ...CRDT,
+  timestamp: CRDT,
 };
